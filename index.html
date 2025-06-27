@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Stock Comercio</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #e0f7fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #00695c;
+      color: white;
+      padding: 10px;
+      text-align: center;
+    }
+
+    header img {
+      height: 50px;
+      vertical-align: middle;
+    }
+
+    nav {
+      display: flex;
+      justify-content: center;
+      background-color: #004d40;
+    }
+
+    nav button {
+      padding: 10px 20px;
+      border: none;
+      background-color: #004d40;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    nav button:hover {
+      background-color: #00796b;
+    }
+
+    section {
+      display: none;
+      padding: 20px;
+    }
+
+    section.active {
+      display: block;
+    }
+
+    input, select, button {
+      margin: 5px 0;
+      padding: 8px;
+      width: 100%;
+      max-width: 300px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    ul li {
+      background-color: #fff;
+      margin: 5px 0;
+      padding: 10px;
+      border-left: 5px solid #00796b;
+    }
+
+    .icon {
+      height: 20px;
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="https://cdn-icons-png.flaticon.com/512/263/263115.png" alt="Logo">
+    <h1>Stock Comercio</h1>
+  </header>
+
+  <nav>
+    <button onclick="cambiarVista('agregar')">
+      <img class="icon" src="https://cdn-icons-png.flaticon.com/512/992/992651.png" alt=""> Agregar Producto
+    </button>
+    <button onclick="cambiarVista('inventario')">
+      <img class="icon" src="https://cdn-icons-png.flaticon.com/512/857/857681.png" alt=""> Inventario
+    </button>
+    <button onclick="cambiarVista('venta')">
+      <img class="icon" src="https://cdn-icons-png.flaticon.com/512/2910/2910791.png" alt=""> Registrar Venta
+    </button>
+  </nav>
+
+  <section id="agregar" class="active">
+    <h2>Agregar Producto</h2>
+    <input id="nombre" placeholder="Nombre del producto"><br>
+    <select id="categoria">
+      <option>Kiosco</option>
+      <option>Librería</option>
+      <option>Regalería</option>
+    </select><br>
+    <input id="stock" type="number" placeholder="Stock inicial"><br>
+    <input id="precio" type="number" placeholder="Precio"><br>
+    <button onclick="agregarProducto()">Agregar</button>
+  </section>
+
+  <section id="inventario">
+    <h2>Inventario</h2>
+    <ul id="lista"></ul>
+  </section>
+
+  <section id="venta">
+    <h2>Registrar Venta</h2>
+    <select id="ventaProducto"></select><br>
+    <input id="cantidad" type="number" placeholder="Cantidad"><br>
+    <input id="pago" type="number" placeholder="Pago a cuenta"><br>
+    <button onclick="registrarVenta()">Vender</button>
+  </section>
+
+ <script>
+  let productos = JSON.parse(localStorage.getItem("productos")) || [];
+
+  function guardar() {
+    localStorage.setItem("productos", JSON.stringify(productos));
+  }
+
+  function mostrar() {
+  const lista = document.getElementById("lista");
+  const ventaSelect = document.getElementById("ventaProducto");
+  lista.innerHTML = "";
+  ventaSelect.innerHTML = "";
+
+  productos.forEach((p, i) => {
+    lista.innerHTML += `
+      <li>
+        <strong>${p.nombre}</strong> (${p.categoria})<br>
+        Stock: <input type="number" id="stockEdit${i}" value="${p.stock}" style="width:60px;">
+        <button onclick="actualizarStockManual(${i})">Actualizar</button>
+        <button onclick="eliminarProducto(${i})" style="background-color:red;color:white;">🗑️ Eliminar</button><br>
+        Precio: $${p.precio.toFixed(2)}
+      </li>`;
+    ventaSelect.innerHTML += `<option value="${i}">${p.nombre}</option>`;
+  });
+}
+
+  function agregarProducto() {
+    let nombre = document.getElementById("nombre").value;
+    let categoria = document.getElementById("categoria").value;
+    let stock = parseInt(document.getElementById("stock").value);
+    let precio = parseFloat(document.getElementById("precio").value);
+    if (!nombre || isNaN(stock) || isNaN(precio)) {
+      alert("Completa todos los campos correctamente");
+      return;
+    }
+    productos.push({ nombre, categoria, stock, precio });
+    guardar();
+    mostrar();
+    alert("Producto agregado");
+    document.getElementById("nombre").value = "";
+    document.getElementById("stock").value = "";
+    document.getElementById("precio").value = "";
+  }
+
+  function registrarVenta() {
+    let index = document.getElementById("ventaProducto").value;
+    let cantidad = parseInt(document.getElementById("cantidad").value);
+    let pago = parseFloat(document.getElementById("pago").value) || 0;
+    let producto = productos[index];
+    if (producto.stock >= cantidad && cantidad > 0) {
+      producto.stock -= cantidad;
+      let total = producto.precio * cantidad;
+      let deuda = total - pago;
+      alert(`Venta OK\nTotal: $${total.toFixed(2)}\nPagó: $${pago.toFixed(2)}\nDebe: $${deuda.toFixed(2)}`);
+      guardar();
+      mostrar();
+      document.getElementById("cantidad").value = "";
+      document.getElementById("pago").value = "";
+    } else {
+      alert("No hay suficiente stock o cantidad inválida");
+    }
+  }
+
+  function actualizarStockManual(i) {
+    const nuevoStock = parseInt(document.getElementById(`stockEdit${i}`).value);
+    if (!isNaN(nuevoStock) && nuevoStock >= 0) {
+      productos[i].stock = nuevoStock;
+      guardar();
+      mostrar();
+      alert(`Stock de "${productos[i].nombre}" actualizado a ${nuevoStock}`);
+    } else {
+      alert("Ingresa un número válido para el stock.");
+    }
+  }
+
+  function cambiarVista(id) {
+    document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+  }
+function eliminarProducto(i) {
+  if (confirm(`¿Seguro que deseas eliminar "${productos[i].nombre}" del inventario?`)) {
+    productos.splice(i, 1);
+    guardar();
+    mostrar();
+  }
+}
+
+  mostrar();
+</script>
+
+</body>
+</html>
